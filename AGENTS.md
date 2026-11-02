@@ -1,25 +1,44 @@
-# Instructions for AI Agents
+<!-- gitnexus:start -->
+# GitNexus — Code Intelligence
 
-## Creating Issues
+This project is indexed by GitNexus as **admin-service** (4550 symbols, 8118 relationships, 313 execution flows).
 
-Issues must be created using the repository's issue templates. Do not create blank issues.
+> Index stale? Run `node .gitnexus/run.cjs analyze --index-only` from the project root — it auto-selects an available runner. No `.gitnexus/run.cjs` yet? Bootstrap with `npx`, `bunx`, or `pnpm dlx` — e.g. `bunx gitnexus@latest analyze` (npm 11 npx crash; #1939).
 
-Read the issue templates in `.github/ISSUE_TEMPLATE/` to understand the available types, required fields, and options. Choose the right template based on its `name` and `description` fields. Do not use the Task or Milestone templates -- those are for maintainers.
+## Always Do
 
-When creating an issue via the GitHub CLI or API, read the chosen template and format the issue body so that each field appears as a `### <label>` markdown header followed by the response. Fill in all required fields. For dropdowns, use exactly one of the values listed in the template's `options`.
+- **MUST run impact before editing.** Use `impact({target: "symbolName", direction: "upstream"})` or `node .gitnexus/run.cjs impact "symbolName" --direction upstream --repo .`; report callers, processes, and risk. Never substitute grep for graph analysis.
+- **MUST analyze graph changes before committing.** Use `detect_changes({scope: "all"})` (MCP) or `node .gitnexus/run.cjs detect-changes --scope all --repo .` (CLI fallback). `partial: true` or `truncated: true` is not a clean check — a zero means unseen, not unaffected; re-run it. For regression review: `detect_changes({scope: "compare", base_ref: "main"})` or `node .gitnexus/run.cjs detect-changes --scope compare --base-ref "main" --repo .`.
+- MUST warn on HIGH/CRITICAL `risk` pre-edit; never use `riskSharedAxes` to waive a HIGH/CRITICAL `risk` warning. Compare File/symbol: MCP File omits axes; Graph-RAG expands File.
+- **MUST treat `risk: UNKNOWN` as unresolved, not as low.** An empty caller set is not evidence the symbol is unused — it can also mean the callers are not resolvable by the index (plain-object property access, dynamic dispatch, cross-language calls). `impact` pairs `UNKNOWN` with a `riskNote` saying so. Confirm with a text search before treating the symbol as safe to change or delete; do not proceed on the strength of a zero.
+- **MUST use `query({search_query: "concept"})` for concepts/flows, `context({name: "symbolName"})` for a named symbol, or `impact` for blast radius, on read-only callers, dependencies, imports, or execution flow.** Graph first; text search only for empty/`UNKNOWN`/literals.
+- For security review, `explain({target: "fileOrSymbol"})` lists taint findings (source→sink flows; needs `analyze --pdg`).
 
-Example for a bug report's area field (from the `Area` dropdown in `bug.yml`):
+## Never Do
 
-```
-### Area
+- NEVER edit a function, class, or method before MCP/CLI impact analysis.
+- NEVER ignore HIGH or CRITICAL risk warnings from impact analysis, and never read `UNKNOWN` as an all-clear — it means the walk could not answer, which is the one verdict that requires confirming by other means.
+- NEVER rename symbols with find-and-replace — use `rename` which understands the call graph.
+- NEVER commit before MCP/CLI graph change analysis.
 
-<one of the options from the template>
-```
+## Resources
 
-## Security vulnerabilities
+| Resource | Use for |
+| --- | --- |
+| `gitnexus://repo/admin-service/context` | Codebase overview, check index freshness |
+| `gitnexus://repo/admin-service/clusters` | All functional areas |
+| `gitnexus://repo/admin-service/processes` | All execution flows |
+| `gitnexus://repo/admin-service/process/{name}` | Step-by-step execution trace |
 
-Do not create public issues for security vulnerabilities. Follow the process in [SECURITY.md](SECURITY.md).
+## CLI
 
-## Contributing code
+| Task | Read this skill file |
+| --- | --- |
+| Understand architecture / "How does X work?" | `.claude/skills/gitnexus-exploring/SKILL.md` |
+| Blast radius / "What breaks if I change X?" | `.claude/skills/gitnexus-impact-analysis/SKILL.md` |
+| Trace bugs / "Why is X failing?" | `.claude/skills/gitnexus-debugging/SKILL.md` |
+| Rename / extract / split / refactor | `.claude/skills/gitnexus-refactoring/SKILL.md` |
+| Tools, resources, schema reference | `.claude/skills/gitnexus-guide/SKILL.md` |
+| Index, status, clean, wiki CLI commands | `.claude/skills/gitnexus-cli/SKILL.md` |
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines on pull requests, testing, documentation, and commit messages.
+<!-- gitnexus:end -->
