@@ -9,6 +9,7 @@ import { useTranslation } from "react-i18next";
 import { Link, useHref } from "react-router-dom";
 import { PageHeaderClearCachesModal } from "./PageHeaderClearCachesModal";
 import { HelpHeader } from "./components/help-enabler/HelpHeader";
+import { LanguageSelector } from "./components/language-selector/LanguageSelector";
 import { useAccess } from "./context/access/Access";
 import { useRealm } from "./context/realm-context/RealmContext";
 import { toDashboard } from "./dashboard/routes/Dashboard";
@@ -130,8 +131,17 @@ export const Header = () => {
       kebabDropdownItems={kebabDropdownItems(isMasterRealm, isManager)}
       toolbarItems={[
         <ToolbarItem
-          key="help"
+          key="language"
           align={{ default: "alignRight" }}
+          visibility={{
+            default: "hidden",
+            md: "visible",
+          }}
+        >
+          <LanguageSelector />
+        </ToolbarItem>,
+        <ToolbarItem
+          key="help"
           visibility={{
             default: "hidden",
             md: "visible",

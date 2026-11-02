@@ -10,23 +10,9 @@ import { PropsWithChildren, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useAdminClient } from "../../admin-client";
 import { DEFAULT_LOCALE } from "../../i18n/constants";
+import { getStoredLocale, isRtlLocale } from "../../i18n/locale-preference";
+import useLocale from "../../utils/useLocale";
 import { useRealm } from "../realm-context/RealmContext";
-
-// can be replaced with https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Intl/Locale/getTextInfo
-const RTL_LOCALES = [
-  "ar",
-  "dv",
-  "fa",
-  "ha",
-  "he",
-  "iw",
-  "ji",
-  "ps",
-  "sd",
-  "ug",
-  "ur",
-  "yi",
-];
 
 type WhoAmIProps = {
   refresh: () => void;
@@ -48,6 +34,12 @@ export const WhoAmIContextProvider = ({ children }: PropsWithChildren) => {
   const [whoAmI, setWhoAmI] = useState<WhoAmIRepresentation>();
   const { realm } = useRealm();
   const [key, setKey] = useState(0);
+  const supportedLocales = useLocale();
+  const storedLocale = getStoredLocale();
+  const locale =
+    storedLocale && supportedLocales.includes(storedLocale)
+      ? storedLocale
+      : whoAmI?.locale;
 
   useFetch(
     async () => {
@@ -79,22 +71,22 @@ export const WhoAmIContextProvider = ({ children }: PropsWithChildren) => {
 
   useFetch(
     async () => {
-      if (whoAmI?.locale) {
-        await i18n.changeLanguage(whoAmI.locale);
+      if (locale) {
+        await i18n.changeLanguage(locale);
       }
     },
     // eslint-disable-next-line @typescript-eslint/no-empty-function
     () => {}, // noop
-    [whoAmI?.locale],
+    [locale],
   );
 
   useEffect(() => {
-    if (whoAmI?.locale && RTL_LOCALES.includes(whoAmI.locale)) {
+    if (isRtlLocale(i18n.language)) {
       document.documentElement.setAttribute("dir", "rtl");
     } else {
       document.documentElement.removeAttribute("dir");
     }
-  }, [whoAmI?.locale]);
+  }, [i18n.language]);
 
   if (!whoAmI) {
     return <KeycloakSpinner />;
