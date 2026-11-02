@@ -1,0 +1,78 @@
+name: Build and push Keycloak image
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+concurrency:
+  group: build-image-${{ github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    shell: bash
+
+permissions:
+  contents: read
+  packages: write
+
+env:
+  REGISTRY: ghcr.io
+
+jobs:
+  build-image:
+    name: Build image and push to GHCR
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Setup Java
+        uses: ./.github/actions/java-setup
+
+      - name: Maven cache
+        uses: ./.github/actions/maven-cache
+        with:
+          create-cache-if-it-doesnt-exist: true
+
+      - name: PNPM store cache
+        uses: ./.github/actions/pnpm-store-cache
+
+      - name: Build Keycloak distribution
+        run: |
+          ./mvnw install -Pdistribution -am -pl distribution/maven-plugins/licenses-processor
+          ./mvnw install -V -e -DskipTests -DskipExamples -DcommitProtoLockChanges=true
+
+      - name: Prepare image metadata
+        id: meta
+        run: |
+          image="${REGISTRY}/${GITHUB_REPOSITORY,,}"
+          echo "image=${image}" >> "$GITHUB_OUTPUT"
+          echo "sha_tag=sha-${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
+          echo "dist=$(basename quarkus/dist/target/keycloak-*.tar.gz)" >> "$GITHUB_OUTPUT"
+
+      - name: Build image
+        working-directory: quarkus/container
+        run: |
+          cp ../dist/target/${{ steps.meta.outputs.dist }} .
+          docker build \
+            --build-arg KEYCLOAK_DIST=${{ steps.meta.outputs.dist }} \
+            --label org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }} \
+            --label org.opencontainers.image.revision=${{ github.sha }} \
+            -t ${{ steps.meta.outputs.image }}:latest \
+            -t ${{ steps.meta.outputs.image }}:${{ steps.meta.outputs.sha_tag }} \
+            .
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Push image
+        run: |
+          docker push ${{ steps.meta.outputs.image }}:latest
+          docker push ${{ steps.meta.outputs.image }}:${{ steps.meta.outputs.sha_tag }}
