@@ -3,7 +3,11 @@ import {
   useEnvironment,
   useHelp,
 } from "@keycloak/keycloak-ui-shared";
-import { DropdownItem, ToolbarItem } from "@patternfly/react-core";
+import {
+  DropdownItem,
+  ToolbarGroup,
+  ToolbarItem,
+} from "@patternfly/react-core";
 import { HelpIcon } from "@patternfly/react-icons";
 import { useTranslation } from "react-i18next";
 import { Link, useHref } from "react-router-dom";
@@ -130,25 +134,20 @@ export const Header = () => {
       dropdownItems={userDropdownItems(isMasterRealm, isManager)}
       kebabDropdownItems={kebabDropdownItems(isMasterRealm, isManager)}
       toolbarItems={[
-        <ToolbarItem
-          key="language"
-          align={{ default: "alignRight" }}
+        <ToolbarGroup
+          key="tools"
           visibility={{
             default: "hidden",
             md: "visible",
-          }}
+          }} /** the language and help buttons are only visible on desktop sizes and replaced by a kebab dropdown for other sizes */
         >
-          <LanguageSelector />
-        </ToolbarItem>,
-        <ToolbarItem
-          key="help"
-          visibility={{
-            default: "hidden",
-            md: "visible",
-          }} /** the settings and help icon buttons are only visible on desktop sizes and replaced by a kebab dropdown for other sizes */
-        >
-          <HelpHeader />
-        </ToolbarItem>,
+          <ToolbarItem>
+            <LanguageSelector />
+          </ToolbarItem>
+          <ToolbarItem>
+            <HelpHeader />
+          </ToolbarItem>
+        </ToolbarGroup>,
       ]}
     />
   );
